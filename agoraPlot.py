@@ -128,7 +128,7 @@ class agoraPlot:
         ax.tick_params(axis='both', labelsize=18)
         ax.set_title(self.cotitle + 'Evolution of QNN Losses', fontsize=24)
         fig.tight_layout()
-        t = np.arange(self.market.pricesT.shape[1]) + 1
+        t = np.arange(self.market.pricesT.shape[1] - 1) + 1
         ax.plot(t, self.market.losses[:, 0], label='Price Setting QNN')
         ax.plot(t, self.market.losses[:, 1], label='Stock Setting QNN')
         ax.legend(fontsize=20)
