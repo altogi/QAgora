@@ -63,7 +63,7 @@ class ReplayBuffer:
 
 class nnInterface:
     """This class serves as a buffer between all replay buffers and all neural networks and the functions in class agent"""
-    def __init__(self, LayersPrice=[3, 25, 25, 9], LayersStock=[2, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=None, buffers=None):
+    def __init__(self, LayersPrice=[3, 25, 25, 9], LayersStock=[2, 25, 25, 5], gamma=0.9, lr=0.05, based=False, nets=None, buffers=None):
         self.LayersPrice = LayersPrice
         self.LayersStock = LayersStock
         self.gamma = gamma
@@ -155,6 +155,9 @@ class nnInterface:
         # qnext[done] = torch.tensor(0).float()
 
         loss = self.criterion(r + self.gamma * qnext, q)
+        if np.isnan(loss.detach().numpy()):
+            print('Loss is NaN')
+
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()

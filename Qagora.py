@@ -187,13 +187,17 @@ class episodeManager:
             self.buffers = self.market.buffers
             self.losses = np.vstack((self.losses, self.market.losses))
 
-            if epi % 10 == 0:
+            if epi % 10 == 0 or epi == self.episodes - 1:
                 plot = agoraPlot(self.market, cotitle='Episode ' + str(epi) + ' - ')
                 plot.plotTracker()
                 plot.plotPrices()
                 plot.plotStock()
                 plot.plotCash()
                 plot.plotPerGroup()
+
+            if epi == self.episodes - 1:
+                for t in range(3):
+                    plot.snapPlot(type=t)
 
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(16, 10)
