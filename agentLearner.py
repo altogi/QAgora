@@ -63,7 +63,7 @@ class ReplayBuffer:
 
 class nnInterface:
     """This class serves as a buffer between all replay buffers and all neural networks and the functions in class agent"""
-    def __init__(self, LayersPrice=[3, 25, 25, 7], LayersStock=[2, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=None, buffers=None):
+    def __init__(self, LayersPrice=[3, 25, 25, 9], LayersStock=[2, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=None, buffers=None):
         self.LayersPrice = LayersPrice
         self.LayersStock = LayersStock
         self.gamma = gamma
@@ -81,7 +81,7 @@ class nnInterface:
             self.bufferStock = ReplayBuffer()
 
         self.optPrice = torch.optim.Adam(self.nnPrice.parameters(), lr=lr)
-        self.outputsPrice = np.linspace(1, 2, LayersPrice[-1])
+        self.outputsPrice = np.linspace(0.5, 2, LayersPrice[-1])
 
         self.optStock = torch.optim.Adam(self.nnStock.parameters(), lr=lr)
         self.outputsStock = np.linspace(0, 1, LayersStock[-1])

@@ -40,9 +40,9 @@ class agora:
     nets: List of DQNetwork objects, [[nnPrice, nnStock], ...], one pair per agent
     buffers: List of ReplayBuffer objects, [[bufferPrice, bufferStock], ...], one pair per agent
     """
-    def __init__(self, population=500, size=10, Ng=5, prices=[10, 10, 10, 10, 10], eta_p=[0, 0, 0, 0, 0], prodCosts=[5, 5, 5, 5, 5],
-                 t_prod=[5, 5, 5, 5, 5], quantity=[50, 50, 50, 50, 50], cash=2000, eta_c=0, eta_prod=0.5, week=10,
-                 needs=[10, 10, 10, 10, 10], rBuy=1.5, eta_buy=0, rSell=1.5, eta_sell=0, based=False, nets=None, buffers=None):
+    def __init__(self, population=500, size=10, Ng=2, prices=[10, 10], eta_p=[0, 0], prodCosts=[5, 5],
+                 t_prod=[5, 5], quantity=[50, 50], cash=2000, eta_c=0, eta_prod=0.5, week=10,
+                 needs=[10, 10], rBuy=1.5, eta_buy=0, rSell=1.5, eta_sell=0, based=False, nets=None, buffers=None, epsilon=[0.5, 0.5]):
         self.population = population
         self.size = size
         self.Ng = Ng
@@ -85,7 +85,7 @@ class agora:
             rSell = self.rSell + np.random.uniform(-1, 1) * self.eta_sell
 
             if based:
-                ag = agentQ(self, cash, price, quantity, position, group=group, prod=prod, rSell=rSell, rBuy=rBuy, based=based, nets=nets[i], buffers=buffers[i])
+                ag = agentQ(self, cash, price, quantity, position, group=group, prod=prod, rSell=rSell, rBuy=rBuy, based=based, nets=nets[i], buffers=buffers[i], epsilon=epsilon)
             else:
                 ag = agentQ(self, cash, price, quantity, position, group=group, prod=prod, rSell=rSell, rBuy=rBuy)
             self.agents.append(ag)
@@ -154,6 +154,11 @@ class agora:
                 stock = self.stockT[same, i]
                 self.aveStock[i, j] = np.mean(stock)
 
+            if i % 10 == 1:
+                print(str(i) + 'th Market Day')
+                print('     Average Prices: ' + "{:5.0f}".format(np.mean(self.avePrices[i, :])))
+                print('     Average Cash: ' + "{:5.0f}".format(np.mean(self.aveCash[i, :])))
+                print('     Average Stock: ' + "{:5.0f}".format(np.mean(self.aveStock[i, :])))
             self.marketDay()
         self.contacts = self.contacts[1:, :]
 
@@ -166,15 +171,47 @@ class agora:
             self.losses = self.losses + ag.losses[1:, :]
         self.losses = self.losses / self.population
 
-market = agora()
-market.run()
-plot = agoraPlot(market)
-plot.plotTracker()
-plot.plotPrices()
-plot.plotStock()
-plot.plotCash()
-plot.plotPerGroup()
-plot.plotLosses()
-for t in range(3):
-    plot.snapPlot(t)
+
+class episodeManager:
+    def __init__(self, episodes=100):
+        self.episodes = episodes
+        self.losses = np.array([0, 0])
+        self.nets = None
+        self.buffers = None
+
+        for epi in range(self.episodes):
+            print('___EPISODE ' + str(epi) + '___')
+            self.market = agora(based=epi > 0, nets=self.nets, buffers=self.buffers)
+            self.market.run()
+            self.nets = self.market.nets
+            self.buffers = self.market.buffers
+            self.losses = np.vstack((self.losses, self.market.losses))
+
+            if epi % 10 == 0:
+                plot = agoraPlot(self.market, cotitle='Episode ' + str(epi) + ' - ')
+                plot.plotTracker()
+                plot.plotPrices()
+                plot.plotStock()
+                plot.plotCash()
+                plot.plotPerGroup()
+
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(16, 10)
+        ax.set_xlabel('t [-]', fontsize=24)
+        ax.grid(True)
+        ax.set_ylabel('Loss [-]', fontsize=20)
+        ax.tick_params(axis='both', labelsize=18)
+        ax.set_title('Evolution of QNN Losses', fontsize=24)
+        fig.tight_layout()
+        t = np.arange(self.losses.shape[0])
+        ax.plot(t, self.losses[:, 0], label='Price Setting QNN')
+        ax.plot(t, self.losses[:, 1], label='Stock Setting QNN')
+
+        x = np.arange(0, self.losses.shape[0], self.losses.shape[0] / self.episodes)
+        for val in x[1:]:
+            ax.plot([val, val], [0, np.max(self.losses)], 'k', label='_nolegend_')
+
+        ax.legend(fontsize=20)
+
+em = episodeManager(episodes=10)
 plt.show()
