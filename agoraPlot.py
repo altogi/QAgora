@@ -5,8 +5,9 @@ import imageio
 # Here, plots regarding the simulation's evolution are presented.
 
 class agoraPlot:
-    def __init__(self, agora):
+    def __init__(self, agora, cotitle=''):
         self.market = agora
+        self.cotitle = cotitle
 
     def plotPerGroup(self):
         t = np.arange(self.market.pricesT.shape[1]) + 1
@@ -17,7 +18,7 @@ class agoraPlot:
             ax.grid(True)
             ax.set_ylabel('Value Normalized w.r.t. Maximum [-]', fontsize=20)
             ax.tick_params(axis='both', labelsize=18)
-            ax.set_title('Evolution of Production Group ' + str(i), fontsize=24)
+            ax.set_title(self.cotitle + 'Evolution of Production Group ' + str(i), fontsize=24)
             fig.tight_layout()
 
             ax.plot(t, self.market.aveCash[:, i] / np.max(self.market.aveCash[:, i]), label='Cash')
@@ -31,6 +32,7 @@ class agoraPlot:
         fig, ax = plt.subplots(4, 1)
         fig.set_size_inches(10, 25)
         fig.tight_layout()
+        plt.suptitle(self.cotitle + 'Single Agent Evolutions', fontsize=20)
         t = np.arange(self.market.tracker.shape[0]) + 1
         ylab = ['Seller Price [$]', 'Seller Cash [$]', 'Seller Stock [-]', 'Buyer Needs Per Group [-]']
         for i, a in enumerate(ax):
@@ -54,7 +56,7 @@ class agoraPlot:
         ax.grid(True)
         ax.set_ylabel('Price Per Production Group [$]', fontsize=20)
         ax.tick_params(axis='both', labelsize=18)
-        ax.set_title('Evolution of Price Per Production Group', fontsize=24)
+        ax.set_title(self.cotitle + 'Evolution of Price Per Production Group', fontsize=24)
         fig.tight_layout()
         t = np.arange(self.market.pricesT.shape[1]) + 1
         for i in range(self.market.Ng):
@@ -68,7 +70,7 @@ class agoraPlot:
         ax.grid(True)
         ax.set_ylabel('Cash Per Production Group [$]', fontsize=20)
         ax.tick_params(axis='both', labelsize=18)
-        ax.set_title('Evolution of Cash Per Production Group', fontsize=24)
+        ax.set_title(self.cotitle + 'Evolution of Cash Per Production Group', fontsize=24)
         fig.tight_layout()
         t = np.arange(self.market.pricesT.shape[1]) + 1
         for i in range(self.market.Ng):
@@ -82,7 +84,7 @@ class agoraPlot:
         ax.grid(True)
         ax.set_ylabel('Stock Per Production Group [$]', fontsize=20)
         ax.tick_params(axis='both', labelsize=18)
-        ax.set_title('Evolution of Stock Per Production Group', fontsize=24)
+        ax.set_title(self.cotitle + 'Evolution of Stock Per Production Group', fontsize=24)
         fig.tight_layout()
         t = np.arange(self.market.pricesT.shape[1]) + 1
         for i in range(self.market.Ng):
@@ -92,11 +94,11 @@ class agoraPlot:
     def plotNeeds(self):
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(16, 10)
-        ax.set_xlabel('Market Days [-]', fontsize=24)
+        ax.set_xlabel(self.cotitle + 'Market Days [-]', fontsize=24)
         ax.grid(True)
         ax.set_ylabel('Average Need Per Production Group [-]', fontsize=20)
         ax.tick_params(axis='both', labelsize=18)
-        ax.set_title('Evolution of Average Need Per Production Group', fontsize=24)
+        ax.set_title(self.cotitle + 'Evolution of Average Need Per Production Group', fontsize=24)
         fig.tight_layout()
         t = np.arange(self.market.pricesT.shape[1]) + 1
         for i in range(self.market.Ng):
@@ -110,11 +112,25 @@ class agoraPlot:
         ax.grid(True)
         ax.set_ylabel('Production Cost Per Group [$]', fontsize=20)
         ax.tick_params(axis='both', labelsize=18)
-        ax.set_title('Evolution of Production Cost Per Group', fontsize=24)
+        ax.set_title(self.cotitle + 'Evolution of Production Cost Per Group', fontsize=24)
         fig.tight_layout()
         t = np.arange(self.market.pricesT.shape[1]) + 1
         for i in range(self.market.Ng):
             ax.plot(t, self.market.costsT[:, i], label='Production Group ' + str(i))
+        ax.legend(fontsize=20)
+
+    def plotLosses(self):
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(16, 10)
+        ax.set_xlabel('Market Days [-]', fontsize=24)
+        ax.grid(True)
+        ax.set_ylabel('Loss [-]', fontsize=20)
+        ax.tick_params(axis='both', labelsize=18)
+        ax.set_title(self.cotitle + 'Evolution of QNN Losses', fontsize=24)
+        fig.tight_layout()
+        t = np.arange(self.market.pricesT.shape[1]) + 1
+        ax.plot(t, self.market.losses[:, 0], label='Price Setting QNN')
+        ax.plot(t, self.market.losses[:, 1], label='Stock Setting QNN')
         ax.legend(fontsize=20)
 
     def snapPlot(self, type=0):

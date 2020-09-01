@@ -63,7 +63,7 @@ class ReplayBuffer:
 
 class nnInterface:
     """This class serves as a buffer between all replay buffers and all neural networks and the functions in class agent"""
-    def __init__(self, LayersPrice=[3, 25, 25, 7], LayersStock=[3, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=[None, None]):
+    def __init__(self, LayersPrice=[3, 25, 25, 7], LayersStock=[3, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=None, buffers=None):
         self.LayersPrice = LayersPrice
         self.LayersStock = LayersStock
         self.gamma = gamma
@@ -72,15 +72,17 @@ class nnInterface:
         if based:
             self.nnPrice = nets[0]
             self.nnStock = nets[1]
+            self.bufferPrice = buffers[0]
+            self.bufferStock = buffers[1]
         else:
             self.nnPrice = DQNetwork(LayersPrice)
             self.nnStock = DQNetwork(LayersStock)
+            self.bufferPrice = ReplayBuffer()
+            self.bufferStock = ReplayBuffer()
 
-        self.bufferPrice = ReplayBuffer()
         self.optPrice = torch.optim.Adam(self.nnPrice.parameters(), lr=lr)
         self.outputsPrice = np.linspace(1, 2, LayersPrice[-1])
 
-        self.bufferStock = ReplayBuffer()
         self.optStock = torch.optim.Adam(self.nnStock.parameters(), lr=lr)
         self.outputsStock = np.linspace(0, 1, LayersStock[-1])
 
@@ -171,8 +173,10 @@ class agentQ:
     epsilon: List of values for epsilon, [eps_Price, eps_Stock]
     based: Boolean indicating if agent decision making must be based on a new net
     nets: List of DQNetwork objects, [nnPrice, nnStock]
+    buffers: List of ReplayBuffer objects, [bufferPrice, bufferStock]
     """
-    def __init__(self, market, cash0, price0, quantity0, position, group=0, prod=0.01, rSell=1.1, rBuy=1.1, save=0.25, epsilon=[0.5, 0.5], based=False, nets=[None, None]):
+    def __init__(self, market, cash0, price0, quantity0, position, group=0, prod=0.01, rSell=1.1, rBuy=1.1, save=0.25,
+                 epsilon=[0.5, 0.5], based=False, nets=None, buffers=None):
         self.market = market
         self.cash = cash0
         self.price = price0
@@ -185,7 +189,8 @@ class agentQ:
         self.save = save
         self.epsilon = epsilon
 
-        self.nnInterface = nnInterface(based=based, nets=nets)
+        self.nnInterface = nnInterface(based=based, nets=nets, buffers=buffers)
+        self.losses = np.array([0, 0])
 
         self.demand0 = self.market.needs[group]
         self.cash0 = cash0
@@ -231,9 +236,10 @@ class agentQ:
 
         self.nnInterface.defineStatePrice(self)
         if train:
-            self.nnInterface.updateQ(self, self.nnInterface.bufferPrice, self.nnInterface.statePrice0,
+            l = self.nnInterface.updateQ(self, self.nnInterface.bufferPrice, self.nnInterface.statePrice0,
                                      self.nnInterface.statePrice, self.nnInterface.actionPrice,
                                      self.nnInterface.nnPrice, self.nnInterface.optPrice)
+            self.losses = np.vstack((self.losses, np.array([l, 0])))
 
         if basic:
             demandChange = 1 + (self.demand - self.demand0 + 0.00001) / (self.demand0 + 0.00001)
@@ -261,9 +267,10 @@ class agentQ:
 
         self.nnInterface.defineStateStock(self)
         if train:
-            self.nnInterface.updateQ(self, self.nnInterface.bufferStock, self.nnInterface.statePrice0,
+            l = self.nnInterface.updateQ(self, self.nnInterface.bufferStock, self.nnInterface.statePrice0,
                                      self.nnInterface.statePrice, self.nnInterface.actionPrice,
                                      self.nnInterface.nnPrice, self.nnInterface.optPrice)
+            self.losses[-1, 1] = l
 
         if basic:
             profit = self.cash - self.cash0
