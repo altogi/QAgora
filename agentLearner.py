@@ -63,7 +63,7 @@ class ReplayBuffer:
 
 class nnInterface:
     """This class serves as a buffer between all replay buffers and all neural networks and the functions in class agent"""
-    def __init__(self, LayersPrice=[3, 25, 25, 7], LayersStock=[3, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=None, buffers=None):
+    def __init__(self, LayersPrice=[3, 25, 25, 7], LayersStock=[2, 25, 25, 5], gamma=0.9, lr=0.1, based=False, nets=None, buffers=None):
         self.LayersPrice = LayersPrice
         self.LayersStock = LayersStock
         self.gamma = gamma
@@ -91,7 +91,10 @@ class nnInterface:
     def defineStatePrice(self, agent):
         """Based on an agent object, this function defines its state to input its Q NN"""
         self.price = agent.price0
-        st1 = (np.mean(agent.competitorPrices) - agent.price0) / (agent.price0 + 0.00001)
+        if len(agent.competitorPrices) > 0:
+            st1 = (np.mean(agent.competitorPrices) - agent.price0) / (agent.price0 + 0.00001)
+        else:
+            st1 = 0
         st2 = (agent.costPerUnit - agent.cost0) / (agent.cost0 + 0.00001)
         st3 = (agent.demand - agent.demand0 + 0.00001) / (agent.demand0 + 0.00001)
         self.statePrice = np.array([st1, st2, st3])
@@ -255,6 +258,7 @@ class agentQ:
 
             growth = self.price / self.price0
             self.nnInterface.actionPrice = torch.tensor(np.abs(self.nnInterface.outputsPrice - growth).argmin())
+            self.nnInterface.statePrice0 = self.nnInterface.statePrice
         else:
             self.price = self.nnInterface.computePrice(self.epsilon[0])
 
@@ -282,8 +286,12 @@ class agentQ:
             else:
                 self.canMake = min(toMake, np.floor(available / self.costPerUnit))
 
-            growth = self.canMake / np.floor(available / self.costPerUnit)
+            if available == 0:
+                growth = 0
+            else:
+                growth = self.canMake / np.floor(available / self.costPerUnit)
             self.nnInterface.actionStock = torch.tensor(np.abs(self.nnInterface.outputsStock - growth).argmin())
+            self.nnInterface.stateStock0 = self.nnInterface.stateStock
         else:
             self.canMake = self.nnInterface.computeStock(self.epsilon[1])
 

@@ -61,6 +61,11 @@ class agora:
         self.rSell = rSell
         self.eta_sell = eta_sell
 
+        self.day = 0
+        self.T = self.week * 3
+        self.prodCosts = [i + j * np.sin(2 * np.pi * self.day / self.T + 2 * np.pi * k / self.Ng) for i, j, k in
+                          zip(self.baseCosts, self.variabCosts, range(self.Ng))]
+
         self.positions = np.array([0, 0])
         self.groups = []
         self.agents = []
@@ -87,10 +92,6 @@ class agora:
 
         self.positions = self.positions[1:, :]
         self.nbrs = NearestNeighbors(radius=max(self.rBuy + eta_buy, self.rSell + eta_sell)).fit(self.positions)
-
-        self.day = 0
-        self.T = self.week * 3
-        self.prodCosts = [i + j * np.sin(2 * np.pi * self.day / self.T + 2 * np.pi * k / self.Ng) for i, j, k in zip(self.baseCosts, self.variabCosts, range(self.Ng))]
 
         #Contacts shows each transaction taking place. 1st column shows time instant, Second shows buyer, Third shows seller
         self.contacts = np.array([0, 0, 0])
@@ -158,7 +159,7 @@ class agora:
 
         self.nets = []
         self.buffers = []
-        self.losses = np.zeros((t, 2))
+        self.losses = np.zeros((t - 1, 2))
         for i, ag in enumerate(self.agents):
             self.nets.append([ag.nnInterface.nnPrice, ag.nnInterface.nnStock])
             self.buffers.append([ag.nnInterface.bufferPrice, ag.nnInterface.bufferStock])
