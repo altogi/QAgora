@@ -81,7 +81,7 @@ class nnInterface:
             self.bufferStock = ReplayBuffer()
 
         self.optPrice = torch.optim.Adam(self.nnPrice.parameters(), lr=lr)
-        self.outputsPrice = np.linspace(0.5, 2, LayersPrice[-1])
+        self.outputsPrice = np.linspace(0.5, 1.5, LayersPrice[-1])
 
         self.optStock = torch.optim.Adam(self.nnStock.parameters(), lr=lr)
         self.outputsStock = np.linspace(0, 1, LayersStock[-1])
@@ -92,9 +92,12 @@ class nnInterface:
         """Based on an agent object, this function defines its state to input its Q NN"""
         self.price = agent.price0
         if len(agent.competitorPrices) > 0:
-            st1 = (np.mean(agent.competitorPrices) - agent.price0) / (agent.price0 + 0.00001)
+            st1 = (np.mean(agent.competitorPrices) - agent.price0) / (np.mean(agent.competitorPrices) + 0.00001)
         else:
             st1 = 0
+
+        if st1 > 1e10:
+            print('Very high first state')
         st2 = (agent.costPerUnit - agent.cost0) / (agent.cost0 + 0.00001)
         st3 = (agent.demand - agent.demand0 + 0.00001) / (agent.demand0 + 0.00001)
         self.statePrice = np.array([st1, st2, st3])

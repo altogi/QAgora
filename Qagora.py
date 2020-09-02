@@ -217,5 +217,5 @@ class episodeManager:
 
         ax.legend(fontsize=20)
 
-em = episodeManager(episodes=10)
+em = episodeManager(episodes=2)
 plt.show()
