@@ -140,10 +140,11 @@ class nnInterface:
 
     def updateQ(self, agent, buffer, state0, state, action, net, optimizer):
         """This function takes into account the result of a recently set price in order to update the NN"""
-        #Reward is the profit per produced good of the taken move
-        profit = agent.cash - agent.cash0
-        produced = agent.canMake
-        rew = profit / (produced + 0.00001)
+        #Reward is the profit of the taken move
+        profit = (agent.cash - agent.cash0) / agent.cash0
+        rew = profit
+        # produced = agent.canMake
+        # rew = profit / (produced + 0.00001)
 
         buffer.push((state0, action.unsqueeze(0), torch.tensor(rew).unsqueeze(0), state))
         sample = buffer.sample()
@@ -226,7 +227,7 @@ class agentQ:
         self.produce()
         self.coherenceCheck()
 
-    def seeDemandandCompetitors(self):
+    def seeDemandandCompetitors(self, ignoreAbove=10e6):
         """Examine neighboring consumers in order to see what the neighboring demand score is. Also examine neighboring
         competitor producers to see what the selling price usually is."""
         _, nbrs = self.market.nbrs.radius_neighbors(X=self.position, radius=self.rSell, sort_results=True)
@@ -236,7 +237,7 @@ class agentQ:
             self.demand += self.market.agents[n].consumerHierarchy[self.group]
 
         competitors = [n for n in nbrs if self.market.groups[n] == self.group]
-        self.competitorPrices = [self.market.agents[p].price for p in competitors]
+        self.competitorPrices = [self.market.agents[p].price for p in competitors if self.market.agents[p].price < ignoreAbove]
         self.costPerUnit = self.market.prodCosts[self.group] * self.prod
 
     def setPrice(self, maxPercentile=50, basic=False, train=True):

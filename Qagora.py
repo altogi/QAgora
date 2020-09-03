@@ -117,7 +117,7 @@ class agora:
             reset = self.day % self.week == 0
             ag.shoppingRoutine(reset)
 
-    def run(self, t=70, track=1):
+    def run(self, t=100, track=1, eliminateOutliers=True):
         self.pricesT = np.zeros((self.population, t))
         self.cashT = np.zeros((self.population, t))
         self.stockT = np.zeros((self.population, t))
@@ -164,24 +164,37 @@ class agora:
 
         self.nets = []
         self.buffers = []
+
+        if eliminateOutliers:
+            outlier = (self.pricesT[:, -1] > np.percentile(self.pricesT[:, -1], 95)) | (self.cashT[:, -1] == 0)
+            substitute = np.argmax(self.cashT[:, -1])
+        else:
+            outlier = []
+            substitute = -1
+
         self.losses = np.zeros((t - 1, 2))
         for i, ag in enumerate(self.agents):
+            if outlier[i]:
+                ag = self.agents[substitute]
+
             self.nets.append([ag.nnInterface.nnPrice, ag.nnInterface.nnStock])
             self.buffers.append([ag.nnInterface.bufferPrice, ag.nnInterface.bufferStock])
             self.losses = self.losses + ag.losses[1:, :]
-        self.losses = self.losses / self.population
+
+        self.losses = self.losses / (self.population - sum(outlier))
 
 
 class episodeManager:
-    def __init__(self, episodes=100):
+    def __init__(self, episodes=100, epsilon=[0.2, 0.9]):
         self.episodes = episodes
         self.losses = np.array([0, 0])
         self.nets = None
         self.buffers = None
+        self.epsilon = np.linspace(epsilon[0], epsilon[1], episodes)
 
         for epi in range(self.episodes):
             print('___EPISODE ' + str(epi) + '___')
-            self.market = agora(based=epi > 0, nets=self.nets, buffers=self.buffers)
+            self.market = agora(based=epi > 0, nets=self.nets, buffers=self.buffers, epsilon=[self.epsilon[epi], self.epsilon[epi]])
             self.market.run()
             self.nets = self.market.nets
             self.buffers = self.market.buffers
@@ -217,5 +230,5 @@ class episodeManager:
 
         ax.legend(fontsize=20)
 
-em = episodeManager(episodes=2)
+em = episodeManager(episodes=5)
 plt.show()
