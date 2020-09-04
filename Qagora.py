@@ -69,6 +69,7 @@ class agora:
         self.positions = np.array([0, 0])
         self.groups = []
         self.agents = []
+        self.excluded = []
         #Initialize population of buyers/sellers
         for i in range(population):
             position = np.random.uniform(low=0, high=size, size=(1, 2))
@@ -106,18 +107,20 @@ class agora:
         np.random.shuffle(order)
         #Open all stores in random order
         for i in order:
-            ag = self.agents[i]
-            ag.openStore(basic=self.day == 1, train=self.day > 1)
+            if i not in self.excluded:
+                ag = self.agents[i]
+                ag.openStore(basic=self.day < 1, train=self.day > 1)
 
         order = np.arange(self.population)
         np.random.shuffle(order)
         # Let agents buy in random order
         for i in order:
-            ag = self.agents[i]
-            reset = self.day % self.week == 0
-            ag.shoppingRoutine(reset)
+            if i not in self.excluded:
+                ag = self.agents[i]
+                reset = self.day % self.week == 0
+                ag.shoppingRoutine(reset)
 
-    def run(self, t=100, track=1, eliminateOutliers=True):
+    def run(self, t=100, track=1, eliminateOutliers=False):
         self.pricesT = np.zeros((self.population, t))
         self.cashT = np.zeros((self.population, t))
         self.stockT = np.zeros((self.population, t))
@@ -132,10 +135,14 @@ class agora:
         for i in range(t):
             aveNeeds = np.array([0 for _ in self.needs])
             for j, ag in enumerate(self.agents):
-                self.pricesT[j, i] = ag.price
-                self.cashT[j, i] = ag.cash
-                self.stockT[j, i] = ag.stock
-                aveNeeds += np.array(ag.consumerHierarchy)
+
+                if ag.price > 10e6:
+                    self.excluded.append(j)
+                if j not in self.excluded:
+                    self.pricesT[j, i] = ag.price
+                    self.cashT[j, i] = ag.cash
+                    self.stockT[j, i] = ag.stock
+                    aveNeeds += np.array(ag.consumerHierarchy)
 
                 if j == track:
                     data = np.hstack((np.array([ag.price, ag.cash, ag.stock] + ag.consumerHierarchy)))
@@ -164,17 +171,16 @@ class agora:
 
         self.nets = []
         self.buffers = []
+        substitute = np.argmax(self.cashT[:, -1])
 
         if eliminateOutliers:
             outlier = (self.pricesT[:, -1] > np.percentile(self.pricesT[:, -1], 95)) | (self.cashT[:, -1] == 0)
-            substitute = np.argmax(self.cashT[:, -1])
         else:
-            outlier = []
-            substitute = -1
+            outlier = [False for _ in self.agents]
 
         self.losses = np.zeros((t - 1, 2))
         for i, ag in enumerate(self.agents):
-            if outlier[i]:
+            if outlier[i] or i in self.excluded:
                 ag = self.agents[substitute]
 
             self.nets.append([ag.nnInterface.nnPrice, ag.nnInterface.nnStock])
