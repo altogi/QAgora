@@ -9,7 +9,9 @@ As has been said, every agent has to consume a specified number of goods from ea
 
 ### How does an agent sell?
 How an agent sells is simply a product of what selling price it fixes and how much of its production good does it choose to produce at the start of each market day. To make this project particularly interesting, these two decisions are carried out by two neural networks which are trained during the simulation via Q-Learning.
+
 The neural network in charge of setting the agent's selling price takes three variables as input: the normalized difference between the agent's previous market day's selling price and the neighboring competitors' selling prices, a normalized measure of how much the production cost of the agent's production group has varied in the past day, and a normalized measure of how much demand for the agent's production good in neighboring agents has varied in the past day. With these three variables, the neural network determines a new price by reducing or enlarging the selling price of the last market day. This neural network is trained by using the profit that is visible during the next market day as a reward.
+
 The neural network in charge of determining how much of its own production good the agent produces is similar, but takes as an input a measure of how much the agent's available cash has varied with respect to the last market day, and how much the agent's current stock deviates from the existing neighboring demand for its production group. The output of the neural network is how much of its available cash should be invested in stocking up. For training, this neural network is also reinforced with the resulting profit.
 
 ## Script Description
